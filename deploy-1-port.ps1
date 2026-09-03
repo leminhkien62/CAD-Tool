@@ -33,6 +33,8 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $CADViewerPath = Join-Path $ScriptDir "cad-viewer-local\packages\cad-viewer-example\dist"
 $StepReaderPath = Join-Path $ScriptDir "StepFileReader\web\dist"
 $LauncherPath = Join-Path $ScriptDir "CAD-Tools-Launcher.html"
+$LogoJpgPath = Join-Path $ScriptDir "StepFileReader\web\LogoVPIC1.jpg"
+$LogoIcoPath = Join-Path $ScriptDir "StepFileReader\web\logo.ico"
 
 Write-Host "Kiem tra duong dan..." -ForegroundColor Yellow
 
@@ -55,6 +57,14 @@ if (-not (Test-Path $LauncherPath)) {
     exit 1
 }
 
+if (-not (Test-Path $LogoJpgPath)) {
+    Write-Host "[!] Khong tim thay logo JPG, bo qua..." -ForegroundColor Yellow
+}
+
+if (-not (Test-Path $LogoIcoPath)) {
+    Write-Host "[!] Khong tim thay logo ICO, bo qua..." -ForegroundColor Yellow
+}
+
 Write-Host "[OK] Tat ca file da san sang!" -ForegroundColor Green
 Write-Host ""
 
@@ -73,15 +83,48 @@ New-Item -Path $DeployPath -ItemType Directory | Out-Null
 Write-Host "Copy Launcher..." -ForegroundColor Cyan
 Copy-Item -Path $LauncherPath -Destination (Join-Path $DeployPath "index.html")
 
+# Copy logo files
+if (Test-Path $LogoJpgPath) {
+    Write-Host "Copy logo JPG..." -ForegroundColor Cyan
+    Copy-Item -Path $LogoJpgPath -Destination (Join-Path $DeployPath "LogoVPIC1.jpg")
+}
+
+if (Test-Path $LogoIcoPath) {
+    Write-Host "Copy logo ICO..." -ForegroundColor Cyan
+    Copy-Item -Path $LogoIcoPath -Destination (Join-Path $DeployPath "logo.ico")
+}
+
 # Copy CAD Viewer
 Write-Host "Copy CAD Viewer..." -ForegroundColor Cyan
 $CADDest = Join-Path $DeployPath "cad-viewer"
 Copy-Item -Path $CADViewerPath -Destination $CADDest -Recurse
 
+# Copy logo vao cad-viewer
+if (Test-Path $LogoIcoPath) {
+    Copy-Item -Path $LogoIcoPath -Destination (Join-Path $CADDest "logo.ico") -Force
+}
+if (Test-Path $LogoJpgPath) {
+    Copy-Item -Path $LogoJpgPath -Destination (Join-Path $CADDest "LogoVPIC1.jpg") -Force
+}
+
 # Copy STEP Reader
 Write-Host "Copy STEP Reader..." -ForegroundColor Cyan
 $StepDest = Join-Path $DeployPath "step-reader"
 Copy-Item -Path $StepReaderPath -Destination $StepDest -Recurse
+
+# Copy logo vao step-reader (neu chua co)
+if (Test-Path $LogoIcoPath) {
+    $stepIco = Join-Path $StepDest "logo.ico"
+    if (-not (Test-Path $stepIco)) {
+        Copy-Item -Path $LogoIcoPath -Destination $stepIco -Force
+    }
+}
+if (Test-Path $LogoJpgPath) {
+    $stepJpg = Join-Path $StepDest "LogoVPIC1.jpg"
+    if (-not (Test-Path $stepJpg)) {
+        Copy-Item -Path $LogoJpgPath -Destination $stepJpg -Force
+    }
+}
 
 Write-Host "[OK] Copy thanh cong!" -ForegroundColor Green
 Write-Host ""

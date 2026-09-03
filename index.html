@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CAD Tools Hub</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="logo.ico">
+    <link rel="shortcut icon" type="image/x-icon" href="logo.ico">
+    
     <style>
         * {
             margin: 0;
@@ -35,6 +40,11 @@
             display: flex;
             align-items: center;
             gap: 10px;
+        }
+        .logo img {
+            height: 40px;
+            width: auto;
+            border-radius: 4px;
         }
         .nav-tabs {
             display: flex;
@@ -151,18 +161,13 @@
             <div>Đang tải ứng dụng...</div>
         </div>
         
-        <!-- Thay doi port o day neu can -->
-        <iframe id="frame-cad-viewer" class="app-frame active" src="http://localhost:8080"></iframe>
+        <iframe id="frame-cad-viewer" class="app-frame active" src="./cad-viewer/"></iframe>
         <iframe id="frame-step-reader" class="app-frame" src=""></iframe>
     </div>
     
     <script>
         let currentApp = 'cad-viewer';
         let stepReaderLoaded = false;
-        
-        // Cau hinh port cho 2 app
-        const CAD_VIEWER_PORT = 8080;
-        const STEP_READER_PORT = 8081;
         
         function switchApp(appName) {
             if (currentApp === appName) return;
@@ -187,7 +192,7 @@
                 // Lazy load STEP Reader
                 const stepFrame = document.getElementById('frame-step-reader');
                 if (!stepReaderLoaded) {
-                    stepFrame.src = `http://localhost:${STEP_READER_PORT}`;
+                    stepFrame.src = './step-reader/';
                     stepReaderLoaded = true;
                 }
                 stepFrame.classList.add('active');
