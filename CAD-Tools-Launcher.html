@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAD Tools Hub</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            background: #1e1e1e;
+        }
+        
+        /* Header Navigation */
+        .nav-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 15px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            position: relative;
+            z-index: 1000;
+        }
+        .logo {
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+        }
+        .nav-tab {
+            padding: 10px 25px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .nav-tab:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+        .nav-tab.active {
+            background: white;
+            color: #667eea;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        /* Content Area */
+        .content-wrapper {
+            height: calc(100vh - 70px);
+            position: relative;
+        }
+        .app-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: none;
+            background: white;
+        }
+        .app-frame.active {
+            display: block;
+        }
+        
+        /* Loading indicator */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 1.2rem;
+            text-align: center;
+        }
+        .loading.hidden {
+            display: none;
+        }
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-header {
+                flex-direction: column;
+                gap: 15px;
+                padding: 15px;
+            }
+            .nav-tabs {
+                width: 100%;
+                justify-content: center;
+            }
+            .nav-tab {
+                flex: 1;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header Navigation -->
+    <div class="nav-header">
+        <div class="logo">
+            <span>🔧</span>
+            <span>CAD Tools Hub</span>
+        </div>
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="switchApp('cad-viewer')" id="tab-cad">
+                <span>📐</span>
+                <span>CAD Viewer</span>
+            </button>
+            <button class="nav-tab" onclick="switchApp('step-reader')" id="tab-step">
+                <span>📦</span>
+                <span>STEP Reader</span>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Content Area -->
+    <div class="content-wrapper">
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <div>Đang tải ứng dụng...</div>
+        </div>
+        
+        <iframe id="frame-cad-viewer" class="app-frame active" src="./cad-viewer/"></iframe>
+        <iframe id="frame-step-reader" class="app-frame" src=""></iframe>
+    </div>
+    
+    <script>
+        let currentApp = 'cad-viewer';
+        let stepReaderLoaded = false;
+        
+        function switchApp(appName) {
+            if (currentApp === appName) return;
+            
+            // Update tabs
+            document.getElementById('tab-cad').classList.remove('active');
+            document.getElementById('tab-step').classList.remove('active');
+            
+            if (appName === 'cad-viewer') {
+                document.getElementById('tab-cad').classList.add('active');
+            } else {
+                document.getElementById('tab-step').classList.add('active');
+            }
+            
+            // Update frames
+            document.getElementById('frame-cad-viewer').classList.remove('active');
+            document.getElementById('frame-step-reader').classList.remove('active');
+            
+            if (appName === 'cad-viewer') {
+                document.getElementById('frame-cad-viewer').classList.add('active');
+            } else {
+                // Lazy load STEP Reader
+                const stepFrame = document.getElementById('frame-step-reader');
+                if (!stepReaderLoaded) {
+                    stepFrame.src = './step-reader/';
+                    stepReaderLoaded = true;
+                }
+                stepFrame.classList.add('active');
+            }
+            
+            currentApp = appName;
+        }
+        
+        // Hide loading when first iframe loads
+        document.getElementById('frame-cad-viewer').onload = function() {
+            document.getElementById('loading').classList.add('hidden');
+        };
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Alt + 1 = CAD Viewer
+            if (e.altKey && e.key === '1') {
+                e.preventDefault();
+                switchApp('cad-viewer');
+            }
+            // Alt + 2 = STEP Reader
+            if (e.altKey && e.key === '2') {
+                e.preventDefault();
+                switchApp('step-reader');
+            }
+        });
+    </script>
+</body>
+</html>

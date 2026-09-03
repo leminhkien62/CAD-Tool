@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>VPIC1 — STEP Viewer &amp; STL Converter | 3D CAD Online</title>
+  <meta name="description"
+    content="VPIC1 STEP Viewer &amp; Converter — mở, xem và chuyển đổi file CAD .step/.stp sang STL ngay trong trình duyệt/ Open, view and convert STEP/STP CAD files to STL right in your browser." />
+  <meta name="keywords"
+    content="vpic1, step viewer, stp viewer, step file viewer, step to stl, step to stl converter, convert step to stl, online step viewer, free step viewer, view step file, open stp file, cad viewer, iso 10303, xem file step, chuyển step sang stl" />
+  <meta name="theme-color" content="#0f1216" />
+
+  <link rel="icon" href="./assets/logo-B-eksxVa.ico">
+  <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "VPIC1 STEP Viewer & STL Converter",
+        "applicationCategory": "DesignApplication",
+        "operatingSystem": "Any (modern web browser with WebGL)",
+        "browserRequirements": "Requires JavaScript and WebGL",
+        "description": "Free online viewer and STL converter for STEP (.step / .stp, ISO-10303) CAD files by VPIC1. Parses and renders B-rep geometry entirely in the browser — no upload — with file stats, surface-boundary highlighting, watertightness checking, and watertight STL export.",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "featureList": [
+          "View STEP and STP files online",
+          "Convert STEP to watertight STL",
+          "100% local — files never leave your browser",
+          "STEP file info: CAD program, schema, units, dimensions",
+          "Highlight CAD surface boundaries",
+          "Watertight / conversion-problem check",
+          "Vietnamese / English / Chinese interface"
+        ]
+      }
+    </script>
+
+  <!-- Set the theme before first paint so there is no flash. main.ts re-syncs the 3D scene + toggle. -->
+  <script>
+    try {
+      var t = localStorage.getItem("vpic1.theme");
+      if (t !== "light" && t !== "dark") t = matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+      document.documentElement.dataset.theme = t;
+    } catch (e) { document.documentElement.dataset.theme = "dark"; }
+
+    // Set language before first paint too, so labels don't flash in the wrong language.
+    try {
+      var l = localStorage.getItem("vpic1.lang");
+      if (l !== "vi" && l !== "en" && l !== "zh") {
+        var nav = (navigator.language || "en").toLowerCase();
+        l = nav.startsWith("vi") ? "vi" : nav.startsWith("zh") ? "zh" : "en";
+      }
+      document.documentElement.dataset.lang = l;
+      document.documentElement.lang = l;
+    } catch (e) { document.documentElement.dataset.lang = "en"; }
+  </script>
+  <script type="module" crossorigin src="./assets/index-CKbjLlQe.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-D6OrYZeX.css">
+</head>
+
+<body>
+  <div id="app">
+    <aside id="sidebar">
+      <header class="brand">
+        <div class="brand-left">
+          <img src="./assets/logo-B-eksxVa.ico" alt="VPIC1" class="logo-mark" />
+          <div>
+            <h1>VPIC1</h1>
+            <p data-i18n="tagline">Miễn phí • Trực tuyến</p>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <select id="langSelect">
+            <option value="vi">VI</option>
+            <option value="en">EN</option>
+            <option value="zh">中文</option>
+          </select>
+
+          <button id="themeToggle" class="theme-toggle">☀</button>
+        </div>
+      </header>
+
+      <section class="panel">
+        <h2><span class="step-num">1</span> <span data-i18n="s1.title">Tệp đầu vào</span></h2>
+        <label class="file">
+          <input type="file" id="stepFile" accept=".step,.stp,.stl,.3mf" />
+          <span class="file-btn" data-i18n="s1.choose">Chọn tệp STEP / STL / 3MF…</span>
+        </label>
+        <p class="filename" id="stepName" data-i18n="s1.none">Chưa tải tệp nào</p>
+      </section>
+
+      <section class="panel" id="infoPanel" hidden>
+        <h2 data-i18n="info.title">Thông tin tệp</h2>
+        <div id="watertight" class="badge" hidden></div>
+        <dl class="info">
+          <div>
+            <dt data-i18n="info.cad">Phần mềm CAD</dt>
+            <dd id="iSystem">—</dd>
+          </div>
+          <div>
+            <dt data-i18n="info.schema">Schema</dt>
+            <dd id="iSchema">—</dd>
+          </div>
+          <div>
+            <dt data-i18n="info.units">Đơn vị</dt>
+            <dd id="iUnits">—</dd>
+          </div>
+          <div>
+            <dt data-i18n="info.dims">Kích thước</dt>
+            <dd id="iDims">—</dd>
+          </div>
+          <div>
+            <dt data-i18n="info.bodies">Số khối</dt>
+            <dd id="iBodies">—</dd>
+          </div>
+          <div>
+            <dt data-i18n="info.faces">Số mặt</dt>
+            <dd id="iFaces">—</dd>
+          </div>
+          <div>
+            <dt data-i18n="info.tris">Tam giác</dt>
+            <dd id="iTris">—</dd>
+          </div>
+          <div id="iEdgesRow" hidden>
+            <dt data-i18n="info.openEdges">Cạnh hở</dt>
+            <dd id="iEdges" class="warn">—</dd>
+          </div>
+          <div>
+            <dt data-i18n="info.exported">Ngày xuất</dt>
+            <dd id="iDate">—</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="panel">
+        <h2><span class="step-num">2</span> <span data-i18n="s2.title">Chuyển sang lưới (mesh)</span></h2>
+        <button id="convertBtn" class="primary" disabled data-i18n="s2.convert">Chuyển đổi</button>
+        <button id="exportBtn" class="secondary" disabled data-i18n="s2.export">Xuất STL…</button>
+        <p class="status" id="status"></p>
+        <details class="advanced">
+          <summary data-i18n="s2.refine">Thiết lập độ chi tiết</summary>
+          <div class="advanced-body">
+            <div class="field">
+              <label for="surfaceDeviation"><span data-i18n="s2.surfDev">Độ lệch bề mặt</span> <span
+                  class="unit">mm</span></label>
+              <input type="number" id="surfaceDeviation" value="0.01" step="0.001" min="0.0001" />
+            </div>
+            <div class="field">
+              <label for="normalDeviation"><span data-i18n="s2.normDev">Độ lệch pháp tuyến</span> <span
+                  class="unit">°</span></label>
+              <input type="number" id="normalDeviation" value="15" step="1" min="1" max="179" />
+            </div>
+            <div class="field">
+              <label for="maxEdge"><span data-i18n="s2.maxEdge">Chiều dài cạnh tối đa</span> <span
+                  class="unit">mm</span></label>
+              <input type="number" id="maxEdge" value="1" step="0.1" min="0.01" />
+            </div>
+            <p class="auto-note" id="autoNote" hidden></p>
+          </div>
+        </details>
+      </section>
+
+      <section class="panel">
+        <h2><span class="step-num">3</span> <span data-i18n="s3.title">Hiển thị</span></h2>
+        <div class="seg" id="styleSeg" role="radiogroup" aria-label="Render style">
+          <button type="button" class="seg-btn active" data-style="shaded" data-i18n="s3.shaded"
+            title="Opaque shaded surfaces">Bóng khối</button>
+          <button type="button" class="seg-btn" data-style="transparent" data-i18n="s3.transparent"
+            title="See-through surfaces">Trong suốt</button>
+          <button type="button" class="seg-btn" data-style="wireframe" data-i18n="s3.wireframe"
+            title="Show the triangle mesh">Khung dây</button>
+          <button type="button" class="seg-btn" data-style="edges" data-i18n="s3.edges"
+            title="Hide surfaces, show only the CAD edges">Chỉ cạnh</button>
+        </div>
+        <label class="toggle"><input type="checkbox" id="tSmooth" checked /> <span data-i18n="s3.smooth">Đổ bóng
+            mượt</span></label>
+        <div class="field crease-field" id="creaseField" hidden
+          title="Edges whose faces meet at more than this angle stay sharp under smooth shading; for STL/3MF it also sets which edges count as feature edges.">
+          <label for="creaseAngle"><span data-i18n="s3.crease">Ngưỡng góc gấp nếp</span> <span
+              class="unit">°</span></label>
+          <input type="number" id="creaseAngle" value="20" step="5" min="1" max="179" />
+        </div>
+        <label class="toggle"><input type="checkbox" id="tColors" checked disabled /> <span id="tColorsLabel"
+            data-i18n="s3.colors">Màu mô hình (từ STEP)</span></label>
+        <label class="toggle"><input type="checkbox" id="tFeature" checked /> <span id="tFeatureLabel"
+            data-i18n="s3.boundaries">Đường biên mặt (CAD)</span></label>
+        <label class="toggle"><input type="checkbox" id="tEdges" /> <span data-i18n="s3.highlightOpen">Làm nổi cạnh
+            hở</span></label>
+      </section>
+
+      <section class="panel" id="partsPanel" hidden>
+        <h2 data-i18n="parts.title">Danh sách chi tiết</h2>
+        <p class="parts-hint" data-i18n="parts.hint">Rê chuột để làm nổi · bỏ chọn để ẩn</p>
+        <div class="parts-actions">
+          <button type="button" class="parts-btn" id="partsShowAll" data-i18n="parts.showAll">Hiện tất cả</button>
+          <button type="button" class="parts-btn" id="partsHideAll" data-i18n="parts.hideAll">Ẩn tất cả</button>
+        </div>
+        <div id="partsTree" class="parts-tree"></div>
+      </section>
+
+      <section class="panel">
+        <details class="advanced as-panel">
+          <summary><span class="step-num">4</span> <span data-i18n="s4.title">STL tham chiếu &amp; độ lệch</span>
+          </summary>
+          <div class="advanced-body">
+            <label class="file">
+              <input type="file" id="refFile" accept=".stl" />
+              <span class="file-btn" data-i18n="s4.choose">Chọn STL tham chiếu…</span>
+            </label>
+            <p class="filename" id="refName" data-i18n="s4.none">Chưa có tệp tham chiếu</p>
+            <label class="toggle"><input type="checkbox" id="tRef" disabled /> <span data-i18n="s4.overlay">Chồng lớp
+                tham chiếu</span></label>
+            <label class="toggle"><input type="checkbox" id="tDev" disabled /> <span data-i18n="s4.colorDev">Tô màu theo
+                độ lệch</span></label>
+            <div class="field" id="rangeField" hidden>
+              <label for="devRange"><span data-i18n="s4.range">Dải màu ±</span> <span class="unit">mm</span> <button
+                  id="autoRange" class="mini" data-i18n="s4.auto">tự động</button></label>
+              <input type="number" id="devRange" step="0.01" min="0.001" />
+            </div>
+            <div class="legend" id="legend" hidden>
+              <div class="legend-bar"></div>
+              <div class="legend-labels">
+                <span id="legNeg">-</span><span>0</span><span id="legPos">+</span>
+              </div>
+              <div class="legend-meta" id="legMeta"></div>
+            </div>
+          </div>
+        </details>
+      </section>
+
+      <footer class="brand-footer">
+        <span>VPIC1 © <span id="year"></span></span>
+      </footer>
+
+    </aside>
+
+    <main id="stage">
+      <div id="viewport"></div>
+      <!-- Bottom bar: mouse-scheme picker + per-scheme "how to move" hint (filled by main.ts). -->
+      <div class="vp-bottom">
+        <label class="nav-scheme" title="Mouse control scheme — emulate the navigation of your CAD tool">
+          <span data-i18n="vp.controls">Điều khiển</span>
+          <select id="navScheme"></select>
+        </label>
+        <span class="hint" id="navHint" data-i18n="vp.hint">kéo để xoay · cuộn để phóng to · kéo phải để di chuyển ·
+          chuột phải để mở menu chi tiết</span>
+      </div>
+
+      <!-- Top-center stack: toolbar → contextual tool row. Everything that acts on
+              the camera or switches a viewport mode lives here; the sidebar keeps only settings. -->
+      <div class="vp-top">
+        <div class="vp-toolbar">
+          <button id="fitBtn" class="vp-tbtn" data-i18n="vp.fit" title="Frame the visible parts (F)">Vừa khung</button>
+          <div class="vp-menu-wrap">
+            <button id="viewsBtn" class="vp-tbtn" data-i18n="vp.views" title="Standard views (keys 1–6)">Góc nhìn
+              ▾</button>
+            <div id="viewsMenu" class="ctx-menu views-menu" hidden>
+              <button type="button" class="ctx-item" data-view="iso" data-i18n="vp.iso">Đẳng trắc <span class="kbd">Ctrl
+                  0</span></button>
+              <button type="button" class="ctx-item" data-view="top" data-i18n="vp.top">Trên <span
+                  class="kbd">1</span></button>
+              <button type="button" class="ctx-item" data-view="bottom" data-i18n="vp.bottom">Dưới <span
+                  class="kbd">2</span></button>
+              <button type="button" class="ctx-item" data-view="front" data-i18n="vp.front">Trước <span
+                  class="kbd">3</span></button>
+              <button type="button" class="ctx-item" data-view="behind" data-i18n="vp.back">Sau <span
+                  class="kbd">4</span></button>
+              <button type="button" class="ctx-item" data-view="left" data-i18n="vp.left">Trái <span
+                  class="kbd">5</span></button>
+              <button type="button" class="ctx-item" data-view="right" data-i18n="vp.right">Phải <span
+                  class="kbd">6</span></button>
+            </div>
+          </div>
+          <button id="projBtn" class="vp-tbtn" data-i18n="vp.ortho" title="Toggle perspective / orthographic">Song
+            song</button>
+          <span class="vp-sep"></span>
+          <button id="sectionBtn" class="vp-tbtn" disabled data-i18n="vp.section"
+            title="Cut the model with a plane (load a model first)">Cắt lát</button>
+          <button id="measureBtn" class="vp-tbtn" disabled data-i18n="vp.measure"
+            title="Measure distances, hole Ø, edge lengths (load a model first)">Đo</button>
+          <button id="explodeBtn" class="vp-tbtn" disabled data-i18n="vp.explode"
+            title="Exploded view (load an assembly first)">Nổ lắp</button>
+        </div>
+        <div class="vp-toolrow" id="sectionRow" hidden>
+          <button type="button" class="parts-btn" id="secX" title="Section perpendicular to X">X</button>
+          <button type="button" class="parts-btn" id="secY" title="Section perpendicular to Y">Y</button>
+          <button type="button" class="parts-btn" id="secZ" title="Section perpendicular to Z">Z</button>
+          <button type="button" class="parts-btn" id="secFlip" data-i18n="vp.flip"
+            title="Keep the other half">Lật</button>
+        </div>
+        <div class="vp-toolrow" id="measureRow" hidden>
+          <button type="button" class="parts-btn active" id="mDist" data-i18n="vp.dist"
+            title="Point-to-point distance (snaps to vertices, hole centers, edges)">Khoảng cách</button>
+          <button type="button" class="parts-btn" id="mEdge" data-i18n="vp.edge"
+            title="Click an edge: length, hole Ø, arc radius">Cạnh</button>
+          <button type="button" class="parts-btn" id="mClear" data-i18n="vp.clear"
+            title="Remove all measurements">Xóa</button>
+        </div>
+        <div class="vp-toolrow" id="explodeRow" hidden>
+          <select id="explodeStyle" class="explode-style" title="How the parts move apart">
+            <option value="hierarchical" data-i18n="vp.hierarchical">Theo nhóm</option>
+            <option value="radial" data-i18n="vp.radial">Tỏa tròn</option>
+            <option value="axis" data-i18n="vp.axis">Xếp trục</option>
+            <option value="peel" data-i18n="vp.peel">Bóc lớp</option>
+            <option value="layout" data-i18n="vp.layout">Trải phẳng</option>
+          </select>
+          <span id="explodeAxisSeg" class="explode-axis" hidden>
+            <button type="button" class="parts-btn active" data-axis="auto" data-i18n="vp.auto"
+              title="Stack along the dominant assembly direction">Tự động</button>
+            <button type="button" class="parts-btn" data-axis="x" title="Stack along X">X</button>
+            <button type="button" class="parts-btn" data-axis="y" title="Stack along Y">Y</button>
+            <button type="button" class="parts-btn" data-axis="z" title="Stack along Z">Z</button>
+          </span>
+          <input type="range" id="explodeRange" min="0" max="1" step="0.01" value="0.5" title="Explosion distance" />
+          <button type="button" class="parts-btn" id="explodeCollapse" data-i18n="vp.collapse"
+            title="Animate the assembly back together">Thu gọn</button>
+        </div>
+      </div>
+
+      <div id="overlay" class="overlay" hidden>
+        <div class="spinner"></div>
+        <p id="overlayText" data-i18n="overlay.working">Đang xử lý…</p>
+        <div id="progressBar" class="progress" hidden>
+          <div id="progressFill"></div>
+        </div>
+      </div>
+
+      <!-- right-click context menu + part-info popup (filled by main.ts) -->
+      <div id="ctxMenu" class="ctx-menu" hidden></div>
+      <div id="partPop" class="ctx-menu part-pop" hidden></div>
+    </main>
+  </div>
+
+  <script>
+    document.getElementById("year") && (document.getElementById("year").textContent = new Date().getFullYear());
+  </script>
+</body>
+
+</html>
